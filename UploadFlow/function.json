@@ -15,7 +15,7 @@
       "type": "queue",
       "name": "outputQueueItem",
       "queueName": "flowupload",
-      "connection": "flow1066_STORAGE",
+      "connection": "AzureWebJobsStorage",
       "direction": "out"
     }
   ],
