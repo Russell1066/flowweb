@@ -31,5 +31,5 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string
         TraceId = found.TraceId,
         Processed = found.Processed,
         Accepted = found.Accepted,
-    }), found.Board);
+    }));
 }
