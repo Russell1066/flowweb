@@ -44,11 +44,20 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, T
     try
     {
         TokenSource.CancelAfter(2 * 60 * 1000);
+        log.Info($"Solver starting");
         var task = Solver.Solve(board, TokenSource.Token);
         task.Wait();
+        log.Info($"Solver completed {task.Result}");
     }
     catch (OperationCanceledException cancelled)
     {
+        log.Error(cancelled.ToString());
+        log.Info($"TraceId : {wrapper.TraceId} failed");
+        return;
+    }
+    catch (Exception cancelled)
+    {
+        log.Error($"Exception Type: {cancelled.GetType().Name()}");
         log.Error(cancelled.ToString());
         log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
