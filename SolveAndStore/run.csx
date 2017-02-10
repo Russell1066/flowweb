@@ -24,16 +24,30 @@ public class BoardTable
     }
 };
 
-public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, TraceWriter log)
+public class UploadResults
+{
+    public string TraceId { get; set; }
+    public bool Accepted { get; set; }
+    public string Results { get; set; }
+}
+
+public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, ICollector<UploadResults> traceIdTable, TraceWriter log)
 {
     log.Info($"C# Queue trigger function processed: {myQueueItem}");
 
     var wrapper = JsonConvert.DeserializeObject<BoardWrapper>(myQueueItem);
+    var results = new UploadResults()
+    {
+        TraceId = wrapper.TraceId,
+        Accepted = false,
+    };
 
     // It can't be in the queue if it isn't alread valid!
-    if(!wrapper.Board.IsValid())
+    if (!wrapper.Board.IsValid())
     {
-        log.Info($"board failures reports {wrapper.Board.DescribeFailures()}");
+        results.Results = $"board failures reports {wrapper.Board.DescribeFailures()}";
+        traceIdTable.Add(results);
+        log.Info(results.Results);
     }
 
     CancellationTokenSource TokenSource = new CancellationTokenSource();
@@ -49,16 +63,9 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, T
         task.Wait();
         log.Info($"Solver completed {task.Result}");
     }
-    catch (OperationCanceledException cancelled)
-    {
-        log.Error(cancelled.ToString());
-        log.Info($"TraceId : {wrapper.TraceId} failed");
-        return;
-    }
-    catch (Exception cancelled)
-    {
-        log.Error($"Exception Type: {cancelled.GetType().Name}");
-        log.Error(cancelled.ToString());
+    catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
+    { 
+        log.Error(agg.InnerException.ToString());
         log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
     }
@@ -78,11 +85,16 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, T
     try
     {
         outputTable.Add(output);
-
         log.Info($"TraceId : {output.TraceId} succeeded");
+        results.Accepted = true;
+        results.Results = "Accepted";
+        traceIdTable.Add(results);
+        log.Info($"TraceId added for user");
     }
     catch
     {
         log.Info($"TraceId : {output.TraceId} failed");
+        traceIdTable.Add(results);
+        log.Info($"TraceId added for user");
     }
 }
