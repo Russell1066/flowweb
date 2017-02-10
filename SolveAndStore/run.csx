@@ -64,6 +64,9 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, I
     {
         log.Error(agg.InnerException.ToString());
         log.Info($"TraceId : {wrapper.TraceId} failed");
+        results.Results = $"Solving took too long";
+        traceIdTable.Add(results);
+        log.Info($"TraceId updated with {results.Results}");
         return;
     }
     finally
