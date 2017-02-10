@@ -1,7 +1,9 @@
+#r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
 
 using System.Net;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 public class TraceIdEntity : TableEntity
 {
@@ -23,17 +25,10 @@ public static HttpResponseMessage Run(HttpRequestMessage req, string traceId, Cl
         return req.CreateResponse(HttpStatusCode.Accepted);
     }
 
-    // Update table?
-    try
-    {
-        log.Info("updating as viewed");
-        found.Viewed = true;
-        traceIds.Execute(TableOperation.Merge(found));
-    }
-    catch (Exception ex)
-    {
-        log.Error(ex.ToString());
-    }
+    // Update table
+    log.Info("updating as viewed");
+    found.Viewed = true;
+    traceIds.Execute(TableOperation.Merge(found));
 
-    return req.CreateResponse(HttpStatusCode.OK);
+    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.Serialize(found));
 }
