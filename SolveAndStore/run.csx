@@ -49,6 +49,8 @@ public static async void Run(string myQueueItem, ICollector<BoardTable> outputTa
     catch (OperationCanceledException cancelled)
     {
         log.Error(cancelled.ToString());
+        log.Info($"TraceId : {output.TraceId} failed");
+        return;
     }
     s.Stop();
     log.Info($"took : {s.Elapsed}");
