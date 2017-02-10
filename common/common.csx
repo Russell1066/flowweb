@@ -36,6 +36,13 @@ public class Logger
     }
 }
 
+public class RequestResponse
+{
+    public string TraceId { get; set; }
+    public bool Processed { get; set; }
+    public bool Accepted { get; set; }
+}
+
 public class BadRequest
 {
     public string TraceId { get; set; }
@@ -66,4 +73,13 @@ public class UploadResults : TableEntity
         TraceId = RowKey;
     }
 }
+
+public class BoardTable
+{
+    public string PartitionKey { get { return Board.BoardSize.ToString(); } }
+    public string RowKey { get { return TraceId; } }
+    public string TraceId { get; set; }
+    public string Name { get; set; }
+    public FlowBoard.BoardDefinition Board { get; set; }
+};
 

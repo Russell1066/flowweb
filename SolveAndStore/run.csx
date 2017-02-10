@@ -12,15 +12,6 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
-public class BoardTable
-{
-    public string PartitionKey { get { return Board.BoardSize.ToString(); } }
-    public string RowKey { get { return TraceId; } }
-    public string TraceId { get; set; }
-    public string Name { get; set; }
-    public FlowBoard.BoardDefinition Board { get; set; }
-};
-
 public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
     CloudTable traceIds,
     TraceWriter log)
