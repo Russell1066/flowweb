@@ -10,19 +10,26 @@ using Newtonsoft.Json;
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string traceId, CloudTable traceIds, TraceWriter log)
 {
     log.Info($"C# HTTP trigger function processed request {traceId}");
+    var logger = new Logger(log, traceId);
 
     var result = await traceIds.ExecuteAsync(TableOperation.Retrieve<UploadResults>("0", traceId));
     var found = result.Result as UploadResults;
 
     if (found == null)
     {
-        return req.CreateResponse(HttpStatusCode.Accepted);
+        logger.Info("TraceId not found in id table");
+        return req.CreateResponse(HttpStatusCode.NoContent);
     }
 
     // Update table
-    log.Info("updating as viewed");
+    logger.Info("updating as viewed");
     found.Viewed = true;
     await traceIds.ExecuteAsync(TableOperation.Merge(found));
 
-    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.SerializeObject(found));
+    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.SerializeObject(new RequestResponse()
+    {
+        TraceId = found.TraceId,
+        Processed = found.Processed,
+        Accepted = found.Accepted,
+    }), found.Board);
 }
