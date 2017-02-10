@@ -12,15 +12,11 @@ using SolverCore;
 
 public class BoardTable
 {
-    public string PartitionKey { get { return Board.BoadSize.ToString(); } }
+    public string PartitionKey { get { return Board.BoardSize.ToString(); } }
     public string RowKey { get { return TraceId; } }
     public string TraceId { get; set; }
     public string Name { get; set; }
     public FlowBoard.BoardDefinition Board { get; set; }
-    public BoardTable()
-    {
-        RowKey = Guid.NewGuid().ToString();
-    }
 };
 
 public class UploadResults
