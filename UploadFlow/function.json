@@ -4,7 +4,7 @@
       "authLevel": "function",
       "name": "req",
       "type": "httpTrigger",
-      "methods": ["post"],
+      "methods": [ "post" ],
       "direction": "in"
     },
     {
@@ -16,6 +16,13 @@
       "type": "queue",
       "name": "outputQueueItem",
       "queueName": "flowupload",
+      "connection": "AzureWebJobsStorage",
+      "direction": "out"
+    },
+    {
+      "type": "table",
+      "name": "traceIds",
+      "tableName": "traceid",
       "connection": "AzureWebJobsStorage",
       "direction": "out"
     }

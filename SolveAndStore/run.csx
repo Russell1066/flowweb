@@ -1,5 +1,6 @@
 #r "Newtonsoft.Json"
 #r "..\bin\FlowCore.dll"
+#r "Microsoft.WindowsAzure.Storage"
 #load "..\Common\common.csx"
 
 using System;
@@ -7,94 +8,94 @@ using System.Net;
 using System.Diagnostics;
 using System.Threading;
 using Newtonsoft.Json;
+using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
-public class BoardTable
+public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
+    CloudTable traceIds,
+    TraceWriter log)
 {
-    public string PartitionKey { get { return Board.BoardSize.ToString(); } }
-    public string RowKey { get { return TraceId; } }
-    public string TraceId { get; set; }
-    public string Name { get; set; }
-    public FlowBoard.BoardDefinition Board { get; set; }
-};
+    var logger = new Logger(log, myQueueItem);
+    var traceId = myQueueItem;
 
-public class UploadResults
-{
-    public string PartitionKey => 0.ToString();
-    public string RowKey { get { return TraceId; } }
-    public string TraceId { get; set; }
-    public bool Accepted { get; set; }
-    public string Results { get; set; }
-}
+    logger.Info($"Queue trigger function processing : {myQueueItem} (should be redundant)");
+    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));  // BUGBUG - needs exception handling
+    var results = retrieve.Result as UploadResults;
 
-public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, ICollector<UploadResults> traceIdTable, TraceWriter log)
-{
-    log.Info($"C# Queue trigger function processed: {myQueueItem}");
-
-    var wrapper = JsonConvert.DeserializeObject<BoardWrapper>(myQueueItem);
-    var results = new UploadResults()
+    if (results == null)
     {
-        TraceId = wrapper.TraceId,
-        Accepted = false,
-    };
+        logger.Error("queue Item with no table item - should be impossible");
+        return;
+    }
 
-    // It can't be in the queue if it isn't alread valid!
-    if (!wrapper.Board.IsValid())
+    // Duplicate processing - we're already done
+    if (results.Processed)
     {
-        results.Results = $"board failures reports {wrapper.Board.DescribeFailures()}";
-        traceIdTable.Add(results);
-        log.Info(results.Results);
+        logger.Error("queue Item processed a second time");
+        return;
+    }
+
+    var boardDescription = JsonConvert.DeserializeObject<FlowBoard.BoardDefinition>(results.Board);
+
+    results.Processed = true;
+
+    // It can't be in the table if it isn't already valid
+    if (!boardDescription.IsValid())
+    {
+        results.Results = $"board failures reports {boardDescription.DescribeFailures()}";
+        traceIds.Execute(TableOperation.Merge(results));
+        logger.Error(results.Results);
+        return;
     }
 
     CancellationTokenSource TokenSource = new CancellationTokenSource();
     var board = new FlowBoard();
-    board.InitializeBoard(wrapper.Board);
+    board.InitializeBoard(boardDescription);
     Stopwatch s = new Stopwatch();
     s.Start();
     try
     {
         TokenSource.CancelAfter(2 * 60 * 1000);
-        log.Info($"Solver starting");
+        logger.Info($"Solver starting");
         var task = Solver.Solve(board, TokenSource.Token);
         task.Wait();
-        log.Info($"Solver completed {task.Result}");
+        logger.Info($"Solver completed {task.Result}");
     }
     catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
     {
-        log.Error(agg.InnerException.ToString());
-        log.Info($"TraceId : {wrapper.TraceId} failed");
+        logger.Error(agg.InnerException.ToString());
+        logger.Info($"failed");
         results.Results = $"Solving took too long";
-        traceIdTable.Add(results);
-        log.Info($"TraceId updated with {results.Results}");
+        traceIds.Execute(TableOperation.Merge(results));
+        logger.Info($"TraceId table updated with {results.Results}");
         return;
     }
     finally
     {
         s.Stop();
-        log.Info($"took : {s.Elapsed}");
+        logger.Info($"took : {s.Elapsed}");
     }
 
     var output = new BoardTable()
     {
-        TraceId = wrapper.TraceId,
-        Name = wrapper.Name,
-        Board = wrapper.Board,
+        TraceId = traceId,
+        Name = results.Name,
+        Board = boardDescription,
     };
 
     try
     {
         outputTable.Add(output);
-        log.Info($"TraceId : {output.TraceId} succeeded");
+        logger.Info($"TraceId : {output.TraceId} succeeded");
         results.Accepted = true;
         results.Results = "Accepted";
-        traceIdTable.Add(results);
-        log.Info($"TraceId added for user");
+        traceIds.Execute(TableOperation.Merge(results));
     }
     catch
     {
-        log.Info($"TraceId : {output.TraceId} failed");
-        traceIdTable.Add(results);
-        log.Info($"TraceId added for user");
+        // BUGBUG - check to see if this has already been processed
+        logger.Info($"TraceId : {output.TraceId} failed");
+        traceIds.Execute(TableOperation.Merge(results));
     }
 }
