@@ -12,20 +12,21 @@ using SolverCore;
 
 public class BoardTable
 {
-    public string PartitionKey { get; }
-    public string RowKey { get; }
+    public string PartitionKey { get { return Board.BoadSize.ToString(); } }
+    public string RowKey { get { return TraceId; } }
     public string TraceId { get; set; }
     public string Name { get; set; }
     public FlowBoard.BoardDefinition Board { get; set; }
     public BoardTable()
     {
-        PartitionKey = "0000";
         RowKey = Guid.NewGuid().ToString();
     }
 };
 
 public class UploadResults
 {
+    public string PartitionKey => 0.ToString();
+    public string RowKey { get { return TraceId; } }
     public string TraceId { get; set; }
     public bool Accepted { get; set; }
     public string Results { get; set; }
@@ -64,7 +65,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, I
         log.Info($"Solver completed {task.Result}");
     }
     catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
-    { 
+    {
         log.Error(agg.InnerException.ToString());
         log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
