@@ -13,9 +13,9 @@ public static string EventTraceId;
 
 public class Logger
 {
-    public TraceWriter Log { get; }
+    public dynamic Log { get; }
 
-    public Logger(Tracewriter log, string eventTraceId = null)
+    public Logger(dynamic log, string eventTraceId = null)
     {
         Log = log;
 
@@ -50,6 +50,7 @@ public class BadRequest
 
 public class UploadResults : TableEntity
 {
+    public const string PARTITIONKEY = "0";
     public string TraceId { get; set; }
     public string Name { get; set; }
     public FlowBoard.BoardDefinition Board { get; set; }
@@ -58,7 +59,7 @@ public class UploadResults : TableEntity
 
     public UploadResults()
     {
-        PartitionKey = 0;
+        PartitionKey = PARTITIONKEY;
         RowKey = Guid.NewGuid().ToString();
         TraceId = RowKey;
     }

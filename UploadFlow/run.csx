@@ -1,7 +1,10 @@
 #r "..\bin\FlowCore.dll"
 #load "..\Common\common.csx"
 
+#r "Microsoft.WindowsAzure.Storage"
+
 using System.Net;
+using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
