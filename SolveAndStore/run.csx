@@ -52,8 +52,11 @@ public static async void Run(string myQueueItem, ICollector<BoardTable> outputTa
         log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
     }
-    s.Stop();
-    log.Info($"took : {s.Elapsed}");
+    finally
+    {
+        s.Stop();
+        log.Info($"took : {s.Elapsed}");
+    }
 
     var output = new BoardTable()
     {
