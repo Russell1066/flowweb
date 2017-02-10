@@ -1,0 +1,28 @@
+{
+  "bindings": [
+    {
+      "authLevel": "function",
+      "name": "req",
+      "type": "httpTrigger",
+      "direction": "in",
+      "route": "query/{traceId:guid}",
+      "methods": [
+        "get"
+      ]
+    },
+    {
+      "name": "$return",
+      "type": "http",
+      "direction": "out"
+    },
+    {
+      "type": "table",
+      "name": "traceIds",
+      "tableName": "traceid",
+      "connection": "AzureWebJobsDashboard",
+      "direction": "in",
+      "take": 50
+    }
+  ],
+  "disabled": false
+}
