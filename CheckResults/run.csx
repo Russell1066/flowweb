@@ -30,5 +30,5 @@ public static HttpResponseMessage Run(HttpRequestMessage req, string traceId, Cl
     found.Viewed = true;
     traceIds.Execute(TableOperation.Merge(found));
 
-    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.Serialize(found));
+    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.SerializeObject(found));
 }
