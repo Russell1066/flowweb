@@ -57,7 +57,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, T
     }
     catch (Exception cancelled)
     {
-        log.Error($"Exception Type: {cancelled.GetType().Name()}");
+        log.Error($"Exception Type: {cancelled.GetType().Name}");
         log.Error(cancelled.ToString());
         log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
