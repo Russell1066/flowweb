@@ -24,7 +24,7 @@ public class BoardTable
     }
 };
 
-public static async void Run(string myQueueItem, ICollector<BoardTable> outputTable, TraceWriter log)
+public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, TraceWriter log)
 {
     log.Info($"C# Queue trigger function processed: {myQueueItem}");
 
@@ -44,7 +44,8 @@ public static async void Run(string myQueueItem, ICollector<BoardTable> outputTa
     try
     {
         TokenSource.CancelAfter(2 * 60 * 1000);
-        await Solver.Solve(board, TokenSource.Token);
+        var task = Solver.Solve(board, TokenSource.Token);
+        task.Wait();
     }
     catch (OperationCanceledException cancelled)
     {
