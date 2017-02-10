@@ -1,21 +1,23 @@
+#r "Newtonsoft.Json"
 #r "..\bin\FlowCore.dll"
+
 #load "..\Common\common.csx"
 
 #r "Microsoft.WindowsAzure.Storage"
+using Newtonsoft.Json;
 
 using System.Net;
 using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
-public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, 
+
+public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
     IAsyncCollector<string> outputQueueItem, CloudTable traceIds, TraceWriter log)
 {
     log.Info("Launching");
     var userResults = new UploadResults()
     {
-        Name = name,
-        Board = board,
     };
 
     var logger = new Logger(log, userResults.TraceId);
@@ -33,11 +35,14 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
         return req.CreateResponse(HttpStatusCode.BadRequest, "Cannot upload without a name");
     }
 
+    userResults.Name = name;
+
     // Get request body
     FlowBoard.BoardDefinition board = null;
     try
     {
         board = await req.Content.ReadAsAsync<FlowBoard.BoardDefinition>();
+        userResults.Board = JsonConvert.SerializeObject(board);
     }
     catch (Exception)
     {

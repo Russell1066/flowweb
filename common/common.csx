@@ -53,8 +53,10 @@ public class UploadResults : TableEntity
     public const string PARTITIONKEY = "0";
     public string TraceId { get; set; }
     public string Name { get; set; }
-    public FlowBoard.BoardDefinition Board { get; set; }
-    public bool? Accepted { get; set; }
+    public string Board { get; set; }
+    public bool Processed { get; set; }
+    public bool Accepted { get; set; }
+    public bool Viewed { get; set; }
     public string Results { get; set; }
 
     public UploadResults()

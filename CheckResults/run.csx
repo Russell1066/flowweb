@@ -1,8 +1,11 @@
+#r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
+
 #load "..\Common\common.csx"
 
 using System.Net;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
 
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string traceId, CloudTable traceIds, TraceWriter log)
 {
