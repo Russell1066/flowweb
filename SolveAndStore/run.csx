@@ -49,7 +49,7 @@ public static async void Run(string myQueueItem, ICollector<BoardTable> outputTa
     catch (OperationCanceledException cancelled)
     {
         log.Error(cancelled.ToString());
-        log.Info($"TraceId : {output.TraceId} failed");
+        log.Info($"TraceId : {wrapper.TraceId} failed");
         return;
     }
     s.Stop();
