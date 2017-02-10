@@ -1,4 +1,3 @@
-#r "Newtonsoft.Json"
 #r "..\bin\FlowCore.dll"
 #load "..\Common\common.csx"
 
@@ -6,7 +5,6 @@ using System;
 using System.Net;
 using System.Diagnostics;
 using System.Threading;
-using Newtonsoft.Json;
 
 using SolverCore;
 
@@ -19,32 +17,33 @@ public class BoardTable
     public FlowBoard.BoardDefinition Board { get; set; }
 };
 
-public class UploadResults
+public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
+    CloudTable traceIds, 
+    TraceWriter log)
 {
-    public string PartitionKey => 0.ToString();
-    public string RowKey { get { return TraceId; } }
-    public string TraceId { get; set; }
-    public bool Accepted { get; set; }
-    public string Results { get; set; }
-}
+    var logger = new Logger(log, myQueueItem);
 
-public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, ICollector<UploadResults> traceIdTable, TraceWriter log)
-{
-    log.Info($"C# Queue trigger function processed: {myQueueItem}");
+    logger.Info($"Queue trigger function processing : {myQueueItem} (should be redundant)");
+    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));  // BUGBUG - needs exception handling
+    var results = retrieve.Result as UploadResults;
+    var boardDescription = results.Board;
 
-    var wrapper = JsonConvert.DeserializeObject<BoardWrapper>(myQueueItem);
-    var results = new UploadResults()
+    // Duplicate processing - we're already done
+    if(results.Accepted.HasValue)
     {
-        TraceId = wrapper.TraceId,
-        Accepted = false,
-    };
+        return;
+    }
 
-    // It can't be in the queue if it isn't alread valid!
-    if (!wrapper.Board.IsValid())
+    // Assume false, only update to true if everything works
+    results.Accepted = false;
+
+    // It can't be in the table if it isn't already valid
+    if (!boardDescription.IsValid())
     {
         results.Results = $"board failures reports {wrapper.Board.DescribeFailures()}";
-        traceIdTable.Add(results);
-        log.Info(results.Results);
+        traceIds.Execute(TableOperation.Merge(results));
+        logger.Error(results.Results);
+        return;
     }
 
     CancellationTokenSource TokenSource = new CancellationTokenSource();
@@ -55,24 +54,24 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, I
     try
     {
         TokenSource.CancelAfter(2 * 60 * 1000);
-        log.Info($"Solver starting");
+        logger.Info($"Solver starting");
         var task = Solver.Solve(board, TokenSource.Token);
         task.Wait();
-        log.Info($"Solver completed {task.Result}");
+        logger.Info($"Solver completed {task.Result}");
     }
     catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
     {
-        log.Error(agg.InnerException.ToString());
-        log.Info($"TraceId : {wrapper.TraceId} failed");
+        logger.Error(agg.InnerException.ToString());
+        logger.Info($"TraceId : {wrapper.TraceId} failed");
         results.Results = $"Solving took too long";
-        traceIdTable.Add(results);
-        log.Info($"TraceId updated with {results.Results}");
+        traceIds.Execute(TableOperation.Merge(results));
+        logger.Info($"TraceId updated with {results.Results}");
         return;
     }
     finally
     {
         s.Stop();
-        log.Info($"took : {s.Elapsed}");
+        logger.Info($"took : {s.Elapsed}");
     }
 
     var output = new BoardTable()
@@ -85,16 +84,15 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable, I
     try
     {
         outputTable.Add(output);
-        log.Info($"TraceId : {output.TraceId} succeeded");
+        logger.Info($"TraceId : {output.TraceId} succeeded");
         results.Accepted = true;
         results.Results = "Accepted";
-        traceIdTable.Add(results);
-        log.Info($"TraceId added for user");
+        traceIds.Execute(TableOperation.Merge(results));
     }
     catch
     {
-        log.Info($"TraceId : {output.TraceId} failed");
-        traceIdTable.Add(results);
-        log.Info($"TraceId added for user");
+        // BUGBUG - check to see if this has already been processed
+        logger.Info($"TraceId : {output.TraceId} failed");
+        traceIds.Execute(TableOperation.Merge(results));
     }
 }
