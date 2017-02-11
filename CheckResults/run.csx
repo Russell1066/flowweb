@@ -20,9 +20,12 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string
     }
 
     // Update table
-    logger.Info("updating as viewed");
-    found.Viewed = true;
-    await traceIds.ExecuteAsync(TableOperation.Merge(found));
+    if(found.Processed)
+    {
+        logger.Info("updating as viewed");
+        found.Viewed = true;
+        await traceIds.ExecuteAsync(TableOperation.Merge(found));
+    }
 
     return req.CreateResponse(found.Processed ? HttpStatusCode.OK : HttpStatusCode.Accepted, new RequestResponse(found));
 }
