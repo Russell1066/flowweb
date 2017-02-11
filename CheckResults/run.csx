@@ -1,11 +1,9 @@
-#r "Newtonsoft.Json"
 #r "Microsoft.WindowsAzure.Storage"
 
 #load "..\Common\common.csx"
 
 using System.Net;
 using Microsoft.WindowsAzure.Storage.Table;
-using Newtonsoft.Json;
 
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string traceId, CloudTable traceIds, TraceWriter log)
 {
@@ -22,14 +20,12 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string
     }
 
     // Update table
-    logger.Info("updating as viewed");
-    found.Viewed = true;
-    await traceIds.ExecuteAsync(TableOperation.Merge(found));
-
-    return req.CreateResponse(HttpStatusCode.OK, JsonConvert.SerializeObject(new RequestResponse()
+    if(found.Processed)
     {
-        TraceId = found.TraceId,
-        Processed = found.Processed,
-        Accepted = found.Accepted,
-    }));
+        logger.Info("updating as viewed");
+        found.Viewed = true;
+        await traceIds.ExecuteAsync(TableOperation.Merge(found));
+    }
+
+    return req.CreateResponse(found.Processed ? HttpStatusCode.OK : HttpStatusCode.Accepted, new RequestResponse(found));
 }

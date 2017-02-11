@@ -40,7 +40,22 @@ public class RequestResponse
 {
     public string TraceId { get; set; }
     public bool Processed { get; set; }
+    public string ProcessStartTime { get;set; } 
+    public string ProcessEndTime { get;set; }
     public bool Accepted { get; set; }
+    public string Results { get; set; }
+    
+    public RequestResponse() {}
+    
+    public RequestResponse(UploadResults results)
+    {
+        TraceId = results.TraceId;
+        Processed = results.Processed;
+        ProcessStartTime = results.ProcessStartTime;
+        ProcessEndTime = results.ProcessEndTime;
+        Accepted = results.Accepted;
+        Results = results.Results;
+    }
 }
 
 public class BadRequest
@@ -62,6 +77,8 @@ public class UploadResults : TableEntity
     public string Name { get; set; }
     public string Board { get; set; }
     public bool Processed { get; set; }
+    public string ProcessStartTime { get;set; }
+    public string ProcessEndTime { get;set; }
     public bool Accepted { get; set; }
     public bool Viewed { get; set; }
     public string Results { get; set; }
