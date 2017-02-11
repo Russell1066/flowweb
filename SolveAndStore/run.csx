@@ -67,7 +67,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         {
             for (;;)
             {
-                Task.Delay(3 * 60 * 1000, TokenSource.Token).Wait();
+                Task.Delay(20 * 1000, TokenSource.Token).Wait();
                 logger.Info("...Solving is hard...");
             }
         });
