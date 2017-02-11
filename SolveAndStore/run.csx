@@ -36,6 +36,9 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         return;
     }
 
+    results.ProcessStartTime = DateTime.Now.ToString("o");
+    traceIds.Execute(TableOperation.Merge(results));
+
     var boardDescription = JsonConvert.DeserializeObject<FlowBoard.BoardDefinition>(results.Board);
 
     results.Processed = true;
@@ -44,6 +47,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
     if (!boardDescription.IsValid())
     {
         results.Results = $"board failures reports {boardDescription.DescribeFailures()}";
+        results.ProcessEndTime = DateTime.Now.ToString("o");
         traceIds.Execute(TableOperation.Merge(results));
         logger.Error(results.Results);
         return;
@@ -59,7 +63,15 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         TokenSource.CancelAfter(2 * 60 * 1000);
         logger.Info($"Solver starting");
         var task = Solver.Solve(board, TokenSource.Token);
-        task.Wait();
+        var sleepLogger = Task.Run(() =>
+        {
+            for (;;)
+            {
+                Task.Delay(3 * 60 * 1000, TokenSource.Token).Wait();
+                logger.Info("...Solving is hard...");
+            }
+        });
+        Task.WaitAny(task, sleepLogger);
         logger.Info($"Solver completed {task.Result}");
     }
     catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
@@ -67,6 +79,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         logger.Error(agg.InnerException.ToString());
         logger.Info($"failed");
         results.Results = $"Solving took too long";
+        results.ProcessEndTime = DateTime.Now.ToString("o");
         traceIds.Execute(TableOperation.Merge(results));
         logger.Info($"TraceId table updated with {results.Results}");
         return;
@@ -87,15 +100,16 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
     try
     {
         outputTable.Add(output);
-        logger.Info($"TraceId : {output.TraceId} succeeded");
+        logger.Info($"Accepted");
         results.Accepted = true;
         results.Results = "Accepted";
+        results.ProcessEndTime = DateTime.Now.ToString("o");
         traceIds.Execute(TableOperation.Merge(results));
     }
     catch
     {
         // BUGBUG - check to see if this has already been processed
-        logger.Info($"TraceId : {output.TraceId} failed");
+        logger.Error($"failed");
         traceIds.Execute(TableOperation.Merge(results));
     }
 }
