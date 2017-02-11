@@ -32,7 +32,11 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
     if (name == null)
     {
         logger.Error($"no name found");
-        return req.CreateResponse(HttpStatusCode.BadRequest, "Cannot upload without a name");
+        return req.CreateResponse(HttpStatusCode.BadRequest, new BadRequest()
+        {
+            FailureType = "Missing required element",
+            Description = "No name found"
+        });
     }
 
     userResults.Name = name;
