@@ -41,6 +41,17 @@ public class RequestResponse
     public string TraceId { get; set; }
     public bool Processed { get; set; }
     public bool Accepted { get; set; }
+    public string Results { get; set; }
+    
+    public RequestResponse() {}
+    
+    public RequestResponse(UploadResults results)
+    {
+        TraceId = results.TraceId;
+        Processed = results.Processed;
+        Accepted = results.Accepted;
+        Results = results.Results;
+    }
 }
 
 public class BadRequest

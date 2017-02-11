@@ -77,7 +77,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
         logger.Info($"Writing to queue");
         await outputQueueItem.AddAsync(userResults.TraceId);
         logger.Info($"Success");
-        return req.CreateResponse(HttpStatusCode.Accepted, userResults);
+        return req.CreateResponse(HttpStatusCode.Accepted, new RequestResponse(userResults));
     }
     catch (Exception ex)
     {
