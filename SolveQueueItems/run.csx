@@ -45,9 +45,10 @@ public static void Run(string myQueueItem, CloudTable solverTable,
 
     // If this has already been done - don't do it again
     var retrieve = solverTable.Execute(TableOperation.Retrieve<SolverTable>(solver.Wrapper.TracingId, solver.Wrapper.SolutionId));
-    if (retrieve != null)
+    var results = retrieve.Result as SolverTable;
+    if (results != null)
     {
-        logger.Info($"Already to completion {retrieve.SolutionId} solution was {retrieve.IsSolution}");
+        logger.Info($"Already to completion {results.SolutionId} solution was {results.IsSolution}");
         return;   
     }
 
