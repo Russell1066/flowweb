@@ -15,8 +15,8 @@ using SolverCore;
 public class SolverTable : TableEntity
 {
     public string TraceId { get; set; }
-    public string SolutionId { get; set; }
-    public string SolutionCount { get; set; }
+    public int SolutionId { get; set; }
+    public int SolutionCount { get; set; }
     public string StartTime { get; set; }
     public string EndTime { get; set; }
     public bool Completed { get; set; }
@@ -24,7 +24,7 @@ public class SolverTable : TableEntity
 
     public SolverTable() { }
 
-    public SolverTable(string traceId, string solutionId)
+    public SolverTable(string traceId, int solutionId)
     {
         PartitionKey = traceId;
         RowKey = solutionId;
@@ -78,18 +78,15 @@ public static async void Run(string myQueueItem, CloudTable solverTable,
 
     // Solve this instance
     var solver = SolverMgr.GetSolver(myQueueItem, new FlowBoard());
-    // Temporary Hack:
-    var wrapper = JsonConvert.DeserializeObject<SolverMgr.SolverWrapper>(myQueueItem);
-    var solver2Data = JsonConvert.DeserializeObject<Solver2.SolverData>(wrapper.SolutionData);
-    SolverTable solverTableItem = new SolverTable(traceId, solver2Data.SolutionIndex.ToString())
+    SolverTable solverTableItem = new SolverTable(traceId, Int.Parse(solver.Wrapper.SolutionId))
     {
-        SolutionCount = 144.ToString(),
+        SolutionCount = Int.Parse(solver.Wrapper.SolutionSetId),
         StartTime = DateTime.Now.ToString("o"),
     };
 
-    logger.Info($"Solving item {solverTableItem.SolutionId} start");
+    logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : Start");
     solverTableItem.IsSolution = await solver(token);
-    logger.Info($"Solving item {solverTableItem.SolutionId} end");
+    logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : End");
     solverTableItem.EndTime = DateTime.Now.ToString("o");
     solverTableItem.Completed = true;
 
