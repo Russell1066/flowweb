@@ -67,7 +67,7 @@ public static void Run(string myQueueItem,
 
     List<Task> tasks = new List<Task>();
     var solutionList = Solver2.GetSolutionList(board, MAXMACHINES);
-    logger.Info($"Will put up {solutionList.Count} items");
+    logger.Info($"Will put up {solutionList.Count()} items");
     foreach (var index in solutionList.Skip(130).Take(10))
     {
         solverData.SolutionIndex = index;
