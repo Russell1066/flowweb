@@ -48,7 +48,7 @@ public static void Run(string myQueueItem, CloudTable solverTable,
     var results = retrieve.Result as SolverTable;
     if (results != null)
     {
-        logger.Info($"Already to completion {results.SolutionId} solution was {results.IsSolution}");
+        logger.Info($"Already run to completion {results.SolutionId} solution was {results.IsSolution}");
         return;   
     }
 
@@ -66,16 +66,19 @@ public static void Run(string myQueueItem, CloudTable solverTable,
     {
         for (;!done;)
         {
-            for(int i=0; i < 200 && !done;++i)
+            for(int i=0; i < 20 && !done;++i)
             {
-                Task.Delay(10, token).Wait();
+                Task.Delay(1000, token).Wait();
             }
-            logger.Info("...Solving is hard...");
+
+            if(!done)
+            {
+                logger.Info("...Solving is hard...");
+            }
         }
     });
     Task.WaitAny(task, sleepLogger);
     done = true;
-    Task.WaitAll(task, sleepLogger);
 
     solverTableItem.IsSolution = task.Result; 
     logger.Info($"IsSolution : {solverTableItem.IsSolution}");
