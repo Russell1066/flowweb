@@ -91,12 +91,20 @@ public class UploadResults : TableEntity
     }
 }
 
-public class BoardTable
+public class BoardTable : TableEntity
 {
-    public string PartitionKey { get { return Board.BoardSize.ToString(); } }
-    public string RowKey { get { return TraceId; } }
     public string TraceId { get; set; }
     public string Name { get; set; }
     public FlowBoard.BoardDefinition Board { get; set; }
+
+    public BoardTable () { }
+    public BoardTable(string traceId, string name, FlowBoard.BoardDefinition board)
+    {
+        TraceId = traceId;
+        Name = name;
+        Board = board;
+        PartitionKey = Board.BoardSize.ToString();
+        RowKey = TraceId;
+    }
 };
 
