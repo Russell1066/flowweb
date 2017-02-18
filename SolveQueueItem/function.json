@@ -9,6 +9,13 @@
     },
     {
       "type": "table",
+      "name": "outputTable",
+      "tableName": "flowstorage",
+      "connection": "AzureWebJobsStorage",
+      "direction": "out"
+    },
+    {
+      "type": "table",
       "name": "solverTable",
       "tableName": "flowsolverstorage",
       "connection": "AzureWebJobsStorage",
