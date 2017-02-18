@@ -33,51 +33,24 @@ public class SolverTable : TableEntity
     }
 }
 
-public static async void Run(string myQueueItem, CloudTable solverTable,
+public static void Run(string myQueueItem, CloudTable solverTable,
     CloudTable traceIds,
     CancellationToken token,
     TraceWriter log)
 {
-    var logger = new Logger(log, myQueueItem);
-    var traceId = myQueueItem;
+    var board = new FlowBoard();
+    var solver = SolverMgr.GetSolver(myQueueItem, board);
+    var logger = new Logger(log, solver.Wrapper.TracingId);
+    var traceId = solver.Wrapper.TracingId;
 
-    logger.Info($"Queue trigger function processing : {myQueueItem} (should be redundant)");
-    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));  // BUGBUG - needs exception handling
-    var results = retrieve.Result as UploadResults;
-    logger.Info($"Testing if we are running new code");
-
-    if (results == null)
+    // If this has already been done - don't do it again
+    var retrieve = solverTable.Execute(TableOperation.Retrieve<SolverTable>(solver.Wrapper.TracingId, solver.Wrapper.SolutionId));
+    if (retrieve != null)
     {
-        logger.Error("queue Item with no table item - should be impossible");
-        return;
+        logger.Info($"Already to completion {retrieve.SolutionId} solution was {retrieve.IsSolution}");
+        return;   
     }
 
-    // Duplicate processing - we're already done
-    if (results.Processed)
-    {
-        logger.Error("traceId with queue items after it is marked processed");
-        return;
-    }
-
-    results.ProcessStartTime = DateTime.Now.ToString("o");
-    traceIds.Execute(TableOperation.Merge(results));
-
-    var boardDescription = JsonConvert.DeserializeObject<FlowBoard.BoardDefinition>(results.Board);
-
-    results.Processed = true;
-
-    // It can't be in the table if it isn't already valid
-    if (!boardDescription.IsValid())
-    {
-        results.Results = $"board failures reports {boardDescription.DescribeFailures()}";
-        results.ProcessEndTime = DateTime.Now.ToString("o");
-        traceIds.Execute(TableOperation.Merge(results));
-        logger.Error(results.Results);
-        return;
-    }
-
-    // Solve this instance
-    var solver = SolverMgr.GetSolver(myQueueItem, new FlowBoard());
     SolverTable solverTableItem = new SolverTable(traceId, Int32.Parse(solver.Wrapper.SolutionId))
     {
         SolutionCount = Int32.Parse(solver.Wrapper.SolutionSetId),
@@ -85,10 +58,39 @@ public static async void Run(string myQueueItem, CloudTable solverTable,
     };
 
     logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : Start");
-    solverTableItem.IsSolution = await solver.Solver(token);
-    logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : End");
+
+    var task = solver.Solver(token);
+    bool done = false;
+    var sleepLogger = Task.Run(() =>
+    {
+        for (;!done;)
+        {
+            for(int i=0; i < 200 && !done;++i)
+            {
+                Task.Delay(10, token).Wait();
+            }
+            logger.Info("...Solving is hard...");
+        }
+    });
+    Task.WaitAny(task, sleepLogger);
+    done = true;
+    Task.WaitAll(task, sleepLogger);
+
+    solverTableItem.IsSolution = task.Result; 
+    logger.Info($"IsSolution : {solverTableItem.IsSolution}");
     solverTableItem.EndTime = DateTime.Now.ToString("o");
     solverTableItem.Completed = true;
-
-    await solverTable.ExecuteAsync(TableOperation.Insert(solverTableItem));
+    logger.Info("");
+    logger.Info($"Writing {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : {solverTableItem.IsSolution}");
+    logger.Info($"PartitionKey = {solverTableItem.PartitionKey}");
+    logger.Info($"RowKey = {solverTableItem.RowKey}");
+    logger.Info($"TraceId = {solverTableItem.TraceId}");
+    logger.Info($"SolutionId = {solverTableItem.SolutionId}");
+    logger.Info($"SolutionCount = {solverTableItem.SolutionId}");
+    logger.Info($"StartTime = {solverTableItem.StartTime}");
+    logger.Info($"EndTime = {solverTableItem.EndTime}");
+    logger.Info($"Completed = {solverTableItem.Completed}");
+    logger.Info($"IsSolution = {solverTableItem.IsSolution}");
+    solverTable.ExecuteAsync(TableOperation.Insert(solverTableItem)).Wait();
+    logger.Info($"Wrote {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : {solverTableItem.IsSolution}");
 }
