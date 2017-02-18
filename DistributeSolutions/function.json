@@ -9,18 +9,18 @@
     },
     {
       "type": "table",
-      "name": "outputTable",
-      "tableName": "flowstorage",
-      "connection": "AzureWebJobsStorage",
-      "direction": "out"
-    },
-    {
-      "type": "table",
       "name": "traceIds",
       "tableName": "traceid",
       "connection": "AzureWebJobsStorage",
       "direction": "out"
+    },
+    {
+      "type": "queue",
+      "name": "outputQueueItems",
+      "queueName": "flowdistributequeue",
+      "connection": "AzureWebJobsStorage",
+      "direction": "out"
     }
   ],
-  "disabled": true
+  "disabled": false
 }
