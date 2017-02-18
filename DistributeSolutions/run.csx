@@ -64,10 +64,13 @@ public static void Run(string myQueueItem,
         MaxNodes = MAXMACHINES,
     };
 
+    List<Task> tasks = new List<Task>();
     foreach (var index in Solver2.GetSolutionList(board, MAXMACHINES))
     {
         solverData.SolutionIndex = index;
         string wrapper = SolverMgr.GetSolverWrapper(solverData, traceId);
-        outputQueueItems.Add(wrapper);
+        tasks.Add(outputQueueItems.AddAsync(wrapper));
     }
+
+    Task.WaitAll(tasks.ToArray());
 }
