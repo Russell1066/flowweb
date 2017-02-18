@@ -12,6 +12,8 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
+private const int SOLVERTIMEOUT = 4 * 60 * 1000; // miliseconds
+
 public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
     CloudTable traceIds,
     TraceWriter log)
@@ -20,7 +22,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
     var traceId = myQueueItem;
 
     logger.Info($"Queue trigger function processing : {myQueueItem} (should be redundant)");
-    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));  // BUGBUG - needs exception handling
+    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>(UploadResults.PARTITIONKEY, traceId));
     var results = retrieve.Result as UploadResults;
 
     if (results == null)
@@ -53,14 +55,13 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         return;
     }
 
-    CancellationTokenSource TokenSource = new CancellationTokenSource();
+    CancellationTokenSource TokenSource = new CancellationTokenSource(SOLVERTIMEOUT);
     var board = new FlowBoard();
     board.InitializeBoard(boardDescription);
     Stopwatch s = new Stopwatch();
     s.Start();
     try
     {
-        TokenSource.CancelAfter(2 * 60 * 1000);
         logger.Info($"Solver starting");
         var task = Solver.Solve(board, TokenSource.Token);
         var sleepLogger = Task.Run(() =>
@@ -90,12 +91,7 @@ public static void Run(string myQueueItem, ICollector<BoardTable> outputTable,
         logger.Info($"took : {s.Elapsed}");
     }
 
-    var output = new BoardTable()
-    {
-        TraceId = traceId,
-        Name = results.Name,
-        Board = boardDescription,
-    };
+    var output = new BoardTable(traceId, results.Name, boardDescription);
 
     try
     {
