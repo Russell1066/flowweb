@@ -11,7 +11,7 @@ using SolverCore;
 
 public static string EventTraceId;
 
-public class Logger
+public class Logger : TraceListener
 {
     public dynamic Log { get; }
 
@@ -23,6 +23,18 @@ public class Logger
         {
             EventTraceId = eventTraceId;
         }
+
+        Trace.TraceListeners.Add(this);
+    }
+
+    public override void Write(string message)
+    {
+        Info(message);
+    }
+
+    public override void WriteLine(string message)
+    {
+        Info(message);
     }
 
     public void Info(string log)
