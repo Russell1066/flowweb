@@ -10,7 +10,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, string
     log.Info($"C# HTTP trigger function processed request {traceId}");
     var logger = new Logger(log, traceId);
 
-    var result = await traceIds.ExecuteAsync(TableOperation.Retrieve<UploadResults>("0", traceId));
+    var result = await traceIds.ExecuteAsync(TableOperation.Retrieve<UploadResults>(UploadResults.PARTITIONKEY, traceId));
     var found = result.Result as UploadResults;
 
     if (found == null)
