@@ -12,7 +12,7 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
-class SolverTable : TableEntity
+public class SolverTable : TableEntity
 {
     public string TraceId { get; set; }
     public string SolutionId { get; set; }
@@ -20,6 +20,7 @@ class SolverTable : TableEntity
     public string StartTime { get; set; }
     public string EndTime { get; set; }
     public bool Completed { get; set; }
+    public bool IsSolution { get; set; }
 
     public SolverTable() { }
 
@@ -32,8 +33,9 @@ class SolverTable : TableEntity
     }
 }
 
-public static void Run(string myQueueItem, ICollector<SolverTable> solverTable,
+public static async void Run(string myQueueItem, CloudTable solverTable,
     CloudTable traceIds,
+    CancellationToken token,
     TraceWriter log)
 {
     var logger = new Logger(log, myQueueItem);
@@ -74,24 +76,21 @@ public static void Run(string myQueueItem, ICollector<SolverTable> solverTable,
     }
 
     // Solve this instance
-    var wrapper = SolverMgr.GetSolverWrapper(solverData, tracingId.ToString());
-    var solver = SolverMgr.GetSolver(wrapper, Game);
+    var solver = SolverMgr.GetSolver(myQueueItem, new FlowBoard());
     // Temporary Hack:
+    var wrapper = JsonConvert.DeserializeObject<SolverMgr.SolverWrapper>(myQueueItem);
     var solver2Data = JsonConvert.DeserializeObject<Solver2.SolverData>(wrapper.SolutionData);
-    SolverTable solverTableItem = new SolverTable(traceId, solver2Data.SolutionIndex)
+    SolverTable solverTableItem = new SolverTable(traceId, solver2Data.SolutionIndex.ToString())
     {
-        SolutionCount = solver2Data.SolverCount,
+        SolutionCount = 144.ToString(),
         StartTime = DateTime.Now.ToString("o"),
     };
 
     logger.Info($"Solving item");
+    solverTableItem.IsSolution = await solver(token);
 
-    if (await solver(TokenSource.Token))
-    {
-        break;
-    }
     solverTableItem.EndTime = DateTime.Now.ToString("o");
     solverTableItem.Completed = true;
 
-    solverTable.Execute(TableOperation.Add(solverTableItem));
+    await solverTable.ExecuteAsync(TableOperation.Insert(solverTableItem));
 }
