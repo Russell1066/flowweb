@@ -11,7 +11,7 @@ using SolverCore;
 
 public static string EventTraceId;
 
-public class Logger : TraceListener
+public class Logger
 {
     public dynamic Log { get; }
 
@@ -23,18 +23,6 @@ public class Logger : TraceListener
         {
             EventTraceId = eventTraceId;
         }
-
-        Trace.TraceListeners.Add(this);
-    }
-
-    public override void Write(string message)
-    {
-        Info(message);
-    }
-
-    public override void WriteLine(string message)
-    {
-        Info(message);
     }
 
     public void Info(string log)
@@ -52,13 +40,13 @@ public class RequestResponse
 {
     public string TraceId { get; set; }
     public bool Processed { get; set; }
-    public string ProcessStartTime { get;set; } 
-    public string ProcessEndTime { get;set; }
+    public string ProcessStartTime { get; set; }
+    public string ProcessEndTime { get; set; }
     public bool Accepted { get; set; }
     public string Results { get; set; }
-    
-    public RequestResponse() {}
-    
+
+    public RequestResponse() { }
+
     public RequestResponse(UploadResults results)
     {
         TraceId = results.TraceId;
@@ -89,8 +77,8 @@ public class UploadResults : TableEntity
     public string Name { get; set; }
     public string Board { get; set; }
     public bool Processed { get; set; }
-    public string ProcessStartTime { get;set; }
-    public string ProcessEndTime { get;set; }
+    public string ProcessStartTime { get; set; }
+    public string ProcessEndTime { get; set; }
     public bool Accepted { get; set; }
     public bool Viewed { get; set; }
     public string Results { get; set; }
