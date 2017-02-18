@@ -24,7 +24,7 @@ public static void Run(string myQueueItem,
     var traceId = myQueueItem;
 
     logger.Info($"Queue trigger function processing : {myQueueItem} (should show twice)");
-    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));
+    var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>(UploadResults.PARTITIONKEY, traceId));
     var results = retrieve.Result as UploadResults;
 
     if (results == null)
