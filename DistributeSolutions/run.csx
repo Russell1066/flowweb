@@ -58,17 +58,16 @@ public static void Run(string myQueueItem,
     }
 
     var board = new FlowBoard();
-    board.InitializeBoard(boardDescription);
     Solver2.SolverData solverData = new Solver2.SolverData()
     {
-        BoardDefinition = Game.Board,
+        BoardDefinition = boardDescription,
         MaxNodes = MAXMACHINES,
     };
 
     foreach (var index in Solver2.GetSolutionList(board, MAXMACHINES))
     {
         solverData.SolutionIndex = index;
-        var wrapper = SolverMgr.GetSolverWrapper(solverData, traceId);
+        string wrapper = SolverMgr.GetSolverWrapper(solverData, traceId);
         outputQueueItems.Add(wrapper);
     }
 }
