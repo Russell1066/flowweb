@@ -27,7 +27,7 @@ public class SolverTable : TableEntity
     public SolverTable(string traceId, int solutionId)
     {
         PartitionKey = traceId;
-        RowKey = solutionId;
+        RowKey = solutionId.ToString();
         TraceId = traceId;
         SolutionId = solutionId;
     }
@@ -78,14 +78,14 @@ public static async void Run(string myQueueItem, CloudTable solverTable,
 
     // Solve this instance
     var solver = SolverMgr.GetSolver(myQueueItem, new FlowBoard());
-    SolverTable solverTableItem = new SolverTable(traceId, Int.Parse(solver.Wrapper.SolutionId))
+    SolverTable solverTableItem = new SolverTable(traceId, Int32.Parse(solver.Wrapper.SolutionId))
     {
-        SolutionCount = Int.Parse(solver.Wrapper.SolutionSetId),
+        SolutionCount = Int32.Parse(solver.Wrapper.SolutionSetId),
         StartTime = DateTime.Now.ToString("o"),
     };
 
     logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : Start");
-    solverTableItem.IsSolution = await solver(token);
+    solverTableItem.IsSolution = await solver.Solver(token);
     logger.Info($"Solving {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : End");
     solverTableItem.EndTime = DateTime.Now.ToString("o");
     solverTableItem.Completed = true;
