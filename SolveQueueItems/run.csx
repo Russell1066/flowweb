@@ -44,6 +44,7 @@ public static async void Run(string myQueueItem, CloudTable solverTable,
     logger.Info($"Queue trigger function processing : {myQueueItem} (should be redundant)");
     var retrieve = traceIds.Execute(TableOperation.Retrieve<UploadResults>("0", traceId));  // BUGBUG - needs exception handling
     var results = retrieve.Result as UploadResults;
+    logger.Info($"Testing if we are running new code");
 
     if (results == null)
     {
@@ -86,9 +87,9 @@ public static async void Run(string myQueueItem, CloudTable solverTable,
         StartTime = DateTime.Now.ToString("o"),
     };
 
-    logger.Info($"Solving item");
+    logger.Info($"Solving item {solverTableItem.SolutionId} start");
     solverTableItem.IsSolution = await solver(token);
-
+    logger.Info($"Solving item {solverTableItem.SolutionId} end");
     solverTableItem.EndTime = DateTime.Now.ToString("o");
     solverTableItem.Completed = true;
 
