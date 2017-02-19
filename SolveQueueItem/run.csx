@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.Threading;
 using Newtonsoft.Json;
 using Microsoft.WindowsAzure.Storage.Table;
+using SolverWrapper = SolverCore.SolverMgr.SolverWrapper;
 
 using SolverCore;
 
@@ -37,8 +38,6 @@ public class SolverTableEntry : TableEntity
 
 private const int READSOLUTIONDELAY = 5 * 1000; // miliseconds
 
-private static Logger logger;
-
 public static void Run(string myQueueItem,
     CloudTable solverTable,
     CloudTable outputTable,
@@ -49,13 +48,13 @@ public static void Run(string myQueueItem,
     log.Info(myQueueItem);
 
     var board = new FlowBoard(); // Keep this separate, we might want to write it to a solutions table
-    SolverMgr.SolutionRunner solver = SolverMgr.GetSolver(myQueueItem, board);
-    logger = new Logger(log, solver.Wrapper.TracingId);
+    var solver = SolverMgr.GetSolver(myQueueItem, board);
+    Logger logger = new Logger(log, $"{solver.Wrapper.TracingId} - {solver.Wrapper.SolutionId,3}");
     string traceId = solver.Wrapper.TracingId;
 
     // If this has already been done - don't do it again
     SolverTableEntry solverTableEntry = GetSolverTableEntry(solverTable, solver.Wrapper);
-    if (solverTableEntry?.Completed)
+    if (solverTableEntry != null && solverTableEntry.Completed)
     {
         logger.Info($"Already run to completion {solverTableEntry.SolutionId} solution was {solverTableEntry.IsSolution}");
         return;
@@ -80,7 +79,7 @@ public static void Run(string myQueueItem,
     if (uploadResults == null)
     {
         logger.Error("queue Item with no table item - should be impossible");
-        WriteQueueItemFailure(solverTable, solverTableEntry);
+        WriteQueueItemFailure(logger, solverTable, solverTableEntry, solver.Wrapper);
         return;
     }
 
@@ -88,7 +87,7 @@ public static void Run(string myQueueItem,
     if (uploadResults.Processed)
     {
         logger.Error("queue Item processed a second time");
-        WriteQueueItemFailure(solverTable, solverTableEntry);
+        WriteQueueItemFailure(logger, solverTable, solverTableEntry, solver.Wrapper);
         return;
     }
 
@@ -106,7 +105,7 @@ public static void Run(string myQueueItem,
     {
         while (!done)
         {
-            Task.Delay(READSOLUTIONDELAY, TokenSource.Token).Wait();
+            Task.Delay(READSOLUTIONDELAY, tokenSource.Token).Wait();
             if (GetUploadResultEntry(traceIds, traceId).Processed)
             {
                 tokenSource.Cancel();
@@ -130,7 +129,7 @@ public static void Run(string myQueueItem,
     catch (AggregateException agg) when (agg.InnerException is OperationCanceledException)
     {
         solverTableEntry.Completed = false;
-        WriteQueueItemFailure(solverTable, solverTableEntry, false);
+        WriteQueueItemFailure(logger, solverTable, solverTableEntry, solver.Wrapper, false);
         return;
     }
     catch (Exception ex)
@@ -157,22 +156,23 @@ public static void Run(string myQueueItem,
     // Finally, update to say we found it
     if (solverTableEntry.IsSolution)
     {
-        WriteSuccess(outputTable, traceIds, traceId, uploadResults, boardDescription);
+        WriteSuccess(logger, outputTable, traceIds, traceId, uploadResults, boardDescription);
     }
 }
 
-void WriteSuccess(CloudTable outputTable, CloudTable traceIds, string traceId, UploadResults uploadResults, FlowBoard.BoardDefinition boardDescription)
+private static void WriteSuccess(Logger logger, CloudTable outputTable, CloudTable traceIds, string traceId, UploadResults uploadResults, FlowBoard.BoardDefinition boardDescription)
 {
     logger.Info($"Writing success");
-    var output = new BoardTable(traceId, results.Name, boardDescription);
+    var output = new BoardTable(traceId, uploadResults.Name, boardDescription);
 
     outputTable.Execute(TableOperation.Insert(output));
 
     logger.Info($"Accepted");
-    results.Accepted = true;
-    results.Results = "Accepted";
-    results.ProcessEndTime = DateTime.Now.ToString("o");
-    traceIds.Execute(TableOperation.Merge(results));
+    uploadResults.Accepted = true;
+    uploadResults.Processed = true;
+    uploadResults.Results = "Accepted";
+    uploadResults.ProcessEndTime = DateTime.Now.ToString("o");
+    traceIds.Execute(TableOperation.Merge(uploadResults));
 }
 
 private static SolverTableEntry GetSolverTableEntry(CloudTable solverTable, SolverWrapper wrapper)
@@ -187,12 +187,12 @@ private static UploadResults GetUploadResultEntry(CloudTable traceIds, string tr
     return traceIdResult.Result as UploadResults;
 }
 
-private static void WriteQueueItemFailure(CloudTable solverTable, SolverTableEntry solverTableEntry, bool skipped = true)
+private static void WriteQueueItemFailure(Logger logger, CloudTable solverTable, SolverTableEntry solverTableEntry, SolverWrapper wrapper, bool skipped = true)
 {
     solverTableEntry.IsSolution = false;
     solverTableEntry.Skipped = skipped;
     solverTableEntry.EndTime = DateTime.Now.ToString("o");
     solverTable.ExecuteAsync(TableOperation.InsertOrMerge(solverTableEntry)).Wait();
     string failedOrSkipped = skipped ? "skipped" : "failed";
-    logger.Info($"QueueItem {solver.Wrapper.SolutionId} of {solver.Wrapper.SolutionSetId} : {solverTableEntry.IsSolution} {failedOrSkipped}");
+    logger.Info($"QueueItem {wrapper.SolutionId} of {wrapper.SolutionSetId} : {failedOrSkipped}");
 }
