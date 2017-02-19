@@ -34,6 +34,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
         logger.Error($"no name found");
         return req.CreateResponse(HttpStatusCode.BadRequest, new BadRequest()
         {
+            TraceId = userResults.TraceId,
             FailureType = "Missing required element",
             Description = "No name found"
         });
@@ -53,6 +54,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
         logger.Error($"Bad format - failed conversion");
         return req.CreateResponse(HttpStatusCode.BadRequest, new BadRequest()
         {
+            TraceId = userResults.TraceId,
             FailureType = "Bad format",
             Description = "Must submit a valid board"
         });
@@ -71,6 +73,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
             logger.Error($"Bad format - {board.DescribeFailures()}");
             return req.CreateResponse(HttpStatusCode.BadRequest, new BadRequest()
             {
+                TraceId = userResults.TraceId,
                 FailureType = "bad format",
                 Description = board.DescribeFailures()
             });
@@ -88,6 +91,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req,
         logger.Error(ex.ToString());
         return req.CreateResponse(HttpStatusCode.BadRequest, new BadRequest()
         {
+            TraceId = userResults.TraceId,
             FailureType = "processing failed",
         });
     }

@@ -11,7 +11,7 @@ using SolverCore;
 
 public class Logger
 {
-    public string EventTraceId;
+    public string EventTraceId = Guid.NewGuid().ToString();
 
     public dynamic Log { get; }
 
@@ -63,11 +63,6 @@ public class BadRequest
     public string TraceId { get; set; }
     public string FailureType { get; set; }
     public string Description { get; set; }
-
-    public BadRequest()
-    {
-        TraceId = EventTraceId;
-    }
 }
 
 public class UploadResults : TableEntity
