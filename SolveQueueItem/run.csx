@@ -132,9 +132,9 @@ public static void Run(string myQueueItem,
         WriteQueueItemFailure(logger, solverTable, solverTableEntry, solver.Wrapper, false);
         return;
     }
-    catch (Exception ex)
+    catch (Exception ex) when (LogException(logger, ex))
     {
-        logger.Error($"unexpected - work in progress {ex.ToString()}");
+        throw;
     }
 
     solverTableEntry.EndTime = DateTime.Now.ToString("o");
@@ -158,6 +158,12 @@ public static void Run(string myQueueItem,
     {
         WriteSuccess(logger, outputTable, traceIds, traceId, uploadResults, boardDescription);
     }
+}
+
+private static bool LogException(Logger logger, Exception ex)
+{
+    logger.Error($"unexpected - work in progress {ex.ToString()}");
+    return false;
 }
 
 private static void WriteSuccess(Logger logger, CloudTable outputTable, CloudTable traceIds, string traceId, UploadResults uploadResults, FlowBoard.BoardDefinition boardDescription)
