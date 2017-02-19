@@ -9,10 +9,10 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 using SolverCore;
 
-public static string EventTraceId;
-
 public class Logger
 {
+    public string EventTraceId;
+
     public dynamic Log { get; }
 
     public Logger(dynamic log, string eventTraceId = null)
